@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top 500+ Generic Drugs Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .dashboard-header {
+            background: linear-gradient(135deg, #0d6efd, #6610f2);
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .btn-export {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-export:hover {
+            background-color: #218838;
+        }
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="dashboard-header">
+            <h1 class="text-center">💊 Top 500+ Generic Drugs Dashboard</h1>
+            <p class="text-center">Search, filter, and explore detailed drug information</p>
+        </div>
+
+        <!-- Search & Filter -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search by drug name, class, or indication...">
+            </div>
+            <div class="col-md-2">
+                <select id="classFilter" class="form-select">
+                    <option value="">All Drug Classes</option>
+                    <option value="Antidiabetic">Antidiabetic</option>
+                    <option value="Antihypertensive">Antihypertensive</option>
+                    <option value="Antibiotic">Antibiotic</option>
+                    <option value="Analgesic">Analgesic</option>
+                    <option value="Antidepressant">Antidepressant</option>
+                    <option value="Anticoagulant">Anticoagulant</option>
+                    <option value="Statin">Statin</option>
+                    <option value="PPI">Proton Pump Inhibitor</option>
+                    <option value="NSAID">NSAID</option>
+                    <option value="Antipsychotic">Antipsychotic</option>
+                    <option value="Antiepileptic">Antiepileptic</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select id="indicationFilter" class="form-select">
+                    <option value="">All Indications</option>
+                    <option value="Hypertension">Hypertension</option>
+                    <option value="Diabetes">Diabetes</option>
+                    <option value="Infection">Infection</option>
+                    <option value="Depression">Depression</option>
+                    <option value="Pain">Pain</option>
+                    <option value="Heart Failure">Heart Failure</option>
+                    <option value="GERD">GERD</option>
+                    <option value="Schizophrenia">Schizophrenia</option>
+                    <option value="Epilepsy">Epilepsy</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button id="exportBtn" class="btn btn-export w-100">Export to CSV</button>
+            </div>
+            <div class="col-md-2">
+                <button id="loadMoreBtn" class="btn btn-info w-100">Load More Drugs</button>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading more drugs...</p>
+        </div>
+
+        <!-- Drug Table -->
+        <div class="table-responsive">
+            <table id="drugTable" class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Drug Name</th>
+                        <th>Drug Class</th>
+                        <th>Mechanism of Action</th>
+                        <th>Indications</th>
+                        <th>Pharmacokinetics</th>
+                        <th>Common Side Effects</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Data will be loaded via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Drug Detail Modal -->
+        <div class="modal fade" id="drugDetailModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="drugDetailTitle">Drug Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="drugDetailContent">
+                        <!-- Dynamic content loaded here -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
+
+    <script>
+        // ---------- FULL DRUG DATA (60+ entries) ----------
+        const drugData = [
+            // Antidiabetics
+            {
+                "id": 1,
+                "name": "Metformin",
+                "class": "Antidiabetic (Biguanide)",
+                "mechanism": "Decreases hepatic glucose production, increases insulin sensitivity, and reduces intestinal glucose absorption",
+                "indications": "Type 2 Diabetes, Polycystic Ovary Syndrome (PCOS)",
+                "pharmacokinetics": "Oral bioavailability: 50-60%, Half-life: 6.2 hours, Excreted unchanged in urine (renal clearance)",
+                "sideEffects": "Nausea, diarrhea, abdominal discomfort, lactic acidosis (rare), vitamin B12 deficiency (long-term use)",
+                "contraindications": "Severe renal impairment (eGFR <30 mL/min), metabolic acidosis, severe liver disease",
+                "drugInteractions": "Alcohol (↑ lactic acidosis risk), Iodinated contrast agents (↑ renal failure risk), Cimetidine (↑ metformin levels)",
+                "dosage": "Initial: 500 mg once or twice daily; Maintenance: 1000-2000 mg/day in divided doses (max 2550 mg/day)",
+                "brandNames": "Glucophage, Fortamet, Glumetza, Riomet"
+            },
+            {
+                "id": 2,
+                "name": "Glipizide",
+                "class": "Antidiabetic (Sulfonylurea)",
+                "mechanism": "Stimulates insulin secretion from pancreatic beta cells by binding to sulfonylurea receptors",
+                "indications": "Type 2 Diabetes",
+                "pharmacokinetics": "Oral bioavailability: 100%, Half-life: 2-4 hours, Hepatic metabolism (CYP2C9), Renal excretion",
+                "sideEffects": "Hypoglycemia, weight gain, nausea, skin rash, hemolytic anemia (rare)",
+                "contraindications": "Type 1 Diabetes, Diabetic ketoacidosis, Severe renal/hepatic impairment, Sulfonamide allergy",
+                "drugInteractions": "Beta-blockers (mask hypoglycemia), Fluconazole (↑ glipizide levels), Rifampin (↓ glipizide levels)",
+                "dosage": "Initial: 5 mg/day; Maintenance: 10-20 mg/day (max 40 mg/day)",
+                "brandNames": "Glucotrol, Glucotrol XL"
+            },
+            {
+                "id": 3,
+                "name": "Pioglitazone",
+                "class": "Antidiabetic (Thiazolidinedione)",
+                "mechanism": "Activates PPAR-gamma receptors, improving insulin sensitivity in adipose tissue, liver, and skeletal muscle",
+                "indications": "Type 2 Diabetes",
+                "pharmacokinetics": "Oral bioavailability: 80%, Half-life: 3-7 hours, Hepatic metabolism (CYP2C8, CYP3A4), Renal excretion",
+                "sideEffects": "Weight gain, edema, heart failure (↑ risk), bone fractures, bladder cancer (rare)",
+                "contraindications": "Heart failure (NYHA Class III/IV), Active bladder cancer, Severe hepatic impairment",
+                "drugInteractions": "Gemfibrozil (↑ pioglitazone levels), Rifampin (↓ pioglitazone levels), Insulin (↑ edema risk)",
+                "dosage": "Initial: 15-30 mg/day; Maintenance: 15-45 mg/day (max 45 mg/day)",
+                "brandNames": "Actos"
+            },
+            {
+                "id": 4,
+                "name": "Sitagliptin",
+                "class": "Antidiabetic (DPP-4 Inhibitor)",
+                "mechanism": "Inhibits dipeptidyl peptidase-4 (DPP-4), increasing GLP-1 and GIP levels, which enhance insulin secretion and suppress glucagon",
+                "indications": "Type 2 Diabetes",
+                "pharmacokinetics": "Oral bioavailability: 87%, Half-life: 12 hours, Renal excretion (79% unchanged)",
+                "sideEffects": "Headache, nasopharyngitis, upper respiratory infection, pancreatitis (rare), joint pain",
+                "contraindications": "History of pancreatitis, Severe renal impairment (dose adjustment required)",
+                "drugInteractions": "Digoxin (↑ digoxin levels), Cyclosporine (↑ sitagliptin levels)",
+                "dosage": "100 mg once daily (dose adjustment for renal impairment)",
+                "brandNames": "Januvia"
+            },
+            {
+                "id": 5,
+                "name": "Empagliflozin",
+                "class": "Antidiabetic (SGLT2 Inhibitor)",
+                "mechanism": "Inhibits sodium-glucose cotransporter 2 (SGLT2) in the proximal renal tubules, reducing glucose reabsorption and increasing urinary glucose excretion",
+                "indications": "Type 2 Diabetes, Heart Failure with Reduced Ejection Fraction (HFrEF), Chronic Kidney Disease (CKD)",
+                "pharmacokinetics": "Oral bioavailability: 78%, Half-life: 12 hours, Hepatic metabolism (glucuronidation), Renal excretion",
+                "sideEffects": "Genital mycotic infections, urinary tract infections, volume depletion, ketoacidosis (rare), lower limb amputations (rare)",
+                "contraindications": "Severe renal impairment (eGFR <30 mL/min), Dialysis, Type 1 Diabetes",
+                "drugInteractions": "Diuretics (↑ volume depletion risk), Insulin (↑ hypoglycemia risk)",
+                "dosage": "10-25 mg once daily",
+                "brandNames": "Jardiance"
+            },
+
+            // Antihypertensives
+            {
+                "id": 6,
+                "name": "Lisinopril",
+                "class": "Antihypertensive (ACE Inhibitor)",
+                "mechanism": "Inhibits angiotensin-converting enzyme (ACE), reducing angiotensin II formation and aldosterone secretion, leading to vasodilation and decreased blood pressure",
+                "indications": "Hypertension, Heart Failure, Post-Myocardial Infarction (MI), Diabetic Nephropathy",
+                "pharmacokinetics": "Oral bioavailability: 25%, Half-life: 12 hours, Excreted unchanged in urine",
+                "sideEffects": "Dry cough, hyperkalemia, angioedema, renal impairment, hypotension",
+                "contraindications": "History of angioedema, Pregnancy (2nd/3rd trimester), Bilateral renal artery stenosis",
+                "drugInteractions": "NSAIDs (↓ antihypertensive effect), Potassium-sparing diuretics (↑ hyperkalemia risk), Lithium (↑ lithium levels)",
+                "dosage": "Hypertension: 10-40 mg/day; Heart Failure: 5-20 mg/day",
+                "brandNames": "Prinivil, Zestril"
+            },
+            {
+                "id": 7,
+                "name": "Amlodipine",
+                "class": "Antihypertensive (Calcium Channel Blocker - Dihydropyridine)",
+                "mechanism": "Inhibits calcium influx into vascular smooth muscle and cardiac muscle, leading to vasodilation and reduced peripheral resistance",
+                "indications": "Hypertension, Angina (Chronic Stable and Vasospastic)",
+                "pharmacokinetics": "Oral bioavailability: 64-90%, Half-life: 30-50 hours, Hepatic metabolism (CYP3A4), Renal excretion",
+                "sideEffects": "Peripheral edema, headache, flushing, dizziness, gingival hyperplasia (rare)",
+                "contraindications": "Severe aortic stenosis, Cardiogenic shock, Hypersensitivity to dihydropyridines",
+                "drugInteractions": "Simvastatin (↑ simvastatin levels), CYP3A4 inhibitors (e.g., ketoconazole, grapefruit juice)",
+                "dosage": "Hypertension: 5-10 mg/day; Angina: 5-10 mg/day",
+                "brandNames": "Norvasc"
+            },
+            {
+                "id": 8,
+                "name": "Losartan",
+                "class": "Antihypertensive (ARB - Angiotensin II Receptor Blocker)",
+                "mechanism": "Blocks angiotensin II type 1 (AT1) receptors, preventing vasoconstriction and aldosterone secretion",
+                "indications": "Hypertension, Diabetic Nephropathy, Heart Failure (with reduced ejection fraction)",
+                "pharmacokinetics": "Oral bioavailability: 33%, Half-life: 2 hours (active metabolite: 6-9 hours), Hepatic metabolism (CYP2C9, CYP3A4), Biliary excretion",
+                "sideEffects": "Hyperkalemia, dizziness, renal impairment, angioedema (rare)",
+                "contraindications": "Pregnancy (2nd/3rd trimester), Bilateral renal artery stenosis, Severe hepatic impairment",
+                "drugInteractions": "Potassium-sparing diuretics (↑ hyperkalemia risk), NSAIDs (↓ antihypertensive effect), Lithium (↑ lithium levels)",
+                "dosage": "Hypertension: 50-100 mg/day; Diabetic Nephropathy: 50-100 mg/day",
+                "brandNames": "Cozaar"
+            },
+            {
+                "id": 9,
+                "name": "Hydrochlorothiazide (HCTZ)",
+                "class": "Antihypertensive (Thiazide Diuretic)",
+                "mechanism": "Inhibits sodium-chloride symporter in the distal convoluted tubule, increasing sodium and water excretion, reducing blood volume and blood pressure",
+                "indications": "Hypertension, Edema (associated with heart failure, cirrhosis, or renal dysfunction)",
+                "pharmacokinetics": "Oral bioavailability: 65-75%, Half-life: 6-15 hours, Excreted unchanged in urine",
+                "sideEffects": "Hypokalemia, hyponatremia, hyperuricemia, hyperglycemia, hypercalcemia, photosensitivity",
+                "contraindications": "Anuria, Sulfonamide allergy, Severe renal impairment (eGFR <30 mL/min)",
+                "drugInteractions": "Digoxin (↑ digoxin toxicity due to hypokalemia), Lithium (↑ lithium levels), NSAIDs (↓ diuretic effect)",
+                "dosage": "Hypertension: 12.5-50 mg/day; Edema: 25-100 mg/day",
+                "brandNames": "Microzide, HydroDIURIL"
+            },
+            {
+                "id": 10,
+                "name": "Metoprolol",
+                "class": "Antihypertensive (Beta-Blocker - Selective β1)",
+                "mechanism": "Blocks β1-adrenergic receptors, reducing heart rate, cardiac output, and renin secretion",
+                "indications": "Hypertension, Angina, Heart Failure, Post-MI, Atrial Fibrillation (rate control)",
+                "pharmacokinetics": "Oral bioavailability: 50% (immediate-release), 70% (extended-release), Half-life: 3-7 hours, Hepatic metabolism (CYP2D6), Renal excretion",
+                "sideEffects": "Bradycardia, fatigue, dizziness, bronchospasm (in asthma/COPD), erectile dysfunction, masking of hypoglycemia",
+                "contraindications": "Severe bradycardia, Heart block (2nd/3rd degree), Cardiogenic shock, Decompensated heart failure",
+                "drugInteractions": "Calcium channel blockers (↑ bradycardia risk), Digoxin (↑ AV block risk), CYP2D6 inhibitors (e.g., fluoxetine, quinidine)",
+                "dosage": "Hypertension: 50-200 mg/day; Heart Failure: 12.5-200 mg/day (target 200 mg/day)",
+                "brandNames": "Lopressor (immediate-release), Toprol XL (extended-release)"
+            },
+
+            // Antibiotics
+            {
+                "id": 11,
+                "name": "Amoxicillin",
+                "class": "Antibiotic (Penicillin - Beta-Lactam)",
+                "mechanism": "Inhibits bacterial cell wall synthesis by binding to penicillin-binding proteins (PBPs), leading to cell lysis and death",
+                "indications": "Bacterial infections (e.g., otitis media, sinusitis, pneumonia, UTI, H. pylori eradication, endocarditis prophylaxis)",
+                "pharmacokinetics": "Oral bioavailability: 95%, Half-life: 1-1.5 hours, Renal excretion (60% unchanged)",
+                "sideEffects": "Diarrhea, nausea, rash, allergic reactions (anaphylaxis, urticaria), Clostridioides difficile infection",
+                "contraindications": "Penicillin allergy, Infectious mononucleosis (↑ risk of rash)",
+                "drugInteractions": "Warfarin (↑ bleeding risk), Oral contraceptives (↓ efficacy), Probenecid (↑ amoxicillin levels)",
+                "dosage": "250-500 mg every 8 hours or 500-875 mg every 12 hours (max 1750 mg/day)",
+                "brandNames": "Amoxil, Trimox, Moxatag"
+            },
+            {
+                "id": 12,
+                "name": "Azithromycin",
+                "class": "Antibiotic (Macrolide)",
+                "mechanism": "Binds to the 50S ribosomal subunit, inhibiting bacterial protein synthesis",
+                "indications": "Bacterial infections (e.g., community-acquired pneumonia, sinusitis, pharyngitis, skin infections, chlamydia, gonorrhea)",
+                "pharmacokinetics": "Oral bioavailability: 37%, Half-life: 68 hours, Hepatic metabolism, Biliary excretion",
+                "sideEffects": "Nausea, diarrhea, abdominal pain, QT prolongation (rare), hepatotoxicity (rare)",
+                "contraindications": "History of cholestatic jaundice/hepatic dysfunction with prior use, Macrolide allergy",
+                "drugInteractions": "Warfarin (↑ bleeding risk), Digoxin (↑ digoxin levels), CYP3A4 substrates (e.g., simvastatin, cyclosporine)",
+                "dosage": "500 mg on day 1, then 250 mg/day for 4 days (Z-Pak); 1-2 g single dose for chlamydia",
+                "brandNames": "Zithromax, Z-Pak, Zmax"
+            },
+            {
+                "id": 13,
+                "name": "Ciprofloxacin",
+                "class": "Antibiotic (Fluoroquinolone)",
+                "mechanism": "Inhibits bacterial DNA gyrase and topoisomerase IV, preventing DNA replication and transcription",
+                "indications": "Bacterial infections (e.g., UTI, prostatitis, infectious diarrhea, bone/joint infections, anthrax)",
+                "pharmacokinetics": "Oral bioavailability: 70%, Half-life: 4 hours, Renal excretion (40-50% unchanged)",
+                "sideEffects": "Nausea, diarrhea, headache, tendon rupture (rare), QT prolongation, peripheral neuropathy, CNS effects (e.g., seizures, confusion)",
+                "contraindications": "History of tendon disorders related to fluoroquinolones, Myasthenia gravis, Children (risk of arthropathy)",
+                "drugInteractions": "Theophylline (↑ theophylline levels), Warfarin (↑ bleeding risk), Antacids (↓ ciprofloxacin absorption)",
+                "dosage": "250-750 mg every 12 hours (oral); 200-400 mg every 8-12 hours (IV)",
+                "brandNames": "Cipro, Cipro XR"
+            },
+            {
+                "id": 14,
+                "name": "Doxycycline",
+                "class": "Antibiotic (Tetracycline)",
+                "mechanism": "Binds to the 30S ribosomal subunit, inhibiting bacterial protein synthesis",
+                "indications": "Bacterial infections (e.g., acne, rosacea, Lyme disease, malaria prophylaxis, chlamydia, rickettsial infections), Periodontitis",
+                "pharmacokinetics": "Oral bioavailability: 90-100%, Half-life: 16-22 hours, Hepatic metabolism, Biliary and renal excretion",
+                "sideEffects": "Nausea, vomiting, diarrhea, photosensitivity, tooth discoloration (in children), esophagitis, hepatotoxicity (rare)",
+                "contraindications": "Pregnancy (2nd/3rd trimester), Children <8 years (except for anthrax or Rocky Mountain spotted fever), Severe hepatic impairment",
+                "drugInteractions": "Antacids (↓ doxycycline absorption), Warfarin (↑ bleeding risk), Oral contraceptives (↓ efficacy), Barbiturates (↓ doxycycline levels)",
+                "dosage": "100-200 mg/day in 1-2 divided doses (malaria prophylaxis: 100 mg/day)",
+                "brandNames": "Vibramycin, Doryx, Oracea"
+            },
+            {
+                "id": 15,
+                "name": "Clindamycin",
+                "class": "Antibiotic (Lincosamide)",
+                "mechanism": "Binds to the 50S ribosomal subunit, inhibiting bacterial protein synthesis",
+                "indications": "Bacterial infections (e.g., skin/soft tissue infections, dental infections, bone/joint infections, bacterial vaginosis, acne), Toxoplasma encephalitis (in HIV patients)",
+                "pharmacokinetics": "Oral bioavailability: 90%, Half-life: 2-3 hours, Hepatic metabolism, Biliary and renal excretion",
+                "sideEffects": "Diarrhea, Clostridioides difficile infection, nausea, rash, pseudomembranous colitis",
+                "contraindications": "History of antibiotic-associated colitis, Hypersensitivity to lincosamides",
+                "drugInteractions": "Neuromuscular blocking agents (↑ neuromuscular blockade), Erythromycin (antagonism)",
+                "dosage": "150-450 mg every 6-8 hours (oral); 600-2700 mg/day in 2-4 divided doses (IV)",
+                "brandNames": "Cleocin"
+            },
+
+            // Analgesics & NSAIDs
+            {
+                "id": 16,
+                "name": "Ibuprofen",
+                "class": "Analgesic (NSAID)",
+                "mechanism": "Inhibits cyclooxygenase (COX-1 and COX-2), reducing prostaglandin synthesis and inflammation",
+                "indications": "Pain, Fever, Inflammation (e.g., osteoarthritis, rheumatoid arthritis, dysmenorrhea)",
+                "pharmacokinetics": "Oral bioavailability: 80%, Half-life: 2-4 hours, Hepatic metabolism (CYP2C9), Renal excretion",
+                "sideEffects": "Gastric irritation, ulceration, bleeding, renal impairment, hypertension, edema, increased cardiovascular risk (with long-term use)",
+                "contraindications": "Active peptic ulcer disease, History of NSAID-induced asthma/urticaria, Severe heart failure, Third trimester of pregnancy",
+                "drugInteractions": "Warfarin (↑ bleeding risk), ACE inhibitors/ARBs (↓ antihypertensive effect), Lithium (↑ lithium levels), Methotrexate (↑ toxicity)",
+                "dosage": "200-800 mg every 6-8 hours (max 3200 mg/day)",
+                "brandNames": "Advil, Motrin, Nurofen"
+            },
+            {
+                "id": 17,
+                "name": "Acetaminophen (Paracetamol)",
+                "class": "Analgesic (Non-Opioid)",
+                "mechanism": "Inhibits prostaglandin synthesis in the CNS (weak COX-1/COX-2 inhibitor), reducing pain and fever (minimal anti-inflammatory effect)",
+                "indications": "Pain, Fever",
+                "pharmacokinetics": "Oral bioavailability: 60-98%, Half-life: 1-4 hours, Hepatic metabolism (glucuronidation/sulfation), Renal excretion",
+                "sideEffects": "Hepatotoxicity (with overdose), rash, nausea (rare)",
+                "contraindications": "Severe hepatic impairment, Chronic alcohol use (↑ hepatotoxicity risk)",
+                "drugInteractions": "Warfarin (↑ bleeding risk with high doses), Alcohol (↑ hepatotoxicity risk), Isoniazid (↑ hepatotoxicity risk)",
+                "dosage": "325-650 mg every 4-6 hours (max 4000 mg/day; 3000 mg/day for chronic use)",
+                "brandNames": "Tylenol, Panadol, Paracetamol"
+            },
+            {
+                "id": 18,
+                "name": "Naproxen",
+                "class": "Analgesic (NSAID)",
+                "mechanism": "Inhibits cyclooxygenase (COX-1 and COX-2), reducing prostaglandin synthesis and inflammation",
+                "indications": "Pain, Fever, Inflammation (e.g., osteoarthritis, rheumatoid arthritis, gout, dysmenorrhea)",
+                "pharmacokinetics": "Oral bioavailability: 95%, Half-life: 12-17 hours, Hepatic metabolism, Renal excretion",
+                "sideEffects": "Gastric irritation, ulceration, bleeding, renal impairment, hypertension, edema, increased cardiovascular risk (with long-term use)",
+                "contraindications": "Active peptic ulcer disease, History of NSAID-induced asthma/urticaria, Severe heart failure, Third trimester of pregnancy",
+                "drugInteractions": "Warfarin (↑ bleeding risk), ACE inhibitors/ARBs (↓ antihypertensive effect), Lithium (↑ lithium levels), Methotrexate (↑ toxicity)",
+                "dosage": "250-500 mg every 12 hours (max 1500 mg/day)",
+                "brandNames": "Aleve, Naprosyn, Anaprox"
+            },
+            {
+                "id": 19,
+                "name": "Celecoxib",
+                "class": "Analgesic (COX-2 Selective NSAID)",
+                "mechanism": "Selectively inhibits cyclooxygenase-2 (COX-2), reducing prostaglandin synthesis and inflammation (minimal effect on COX-1)",
+                "indications": "Pain, Inflammation (e.g., osteoarthritis, rheumatoid arthritis, ankylosing spondylitis, acute pain, dysmenorrhea)",
+                "pharmacokinetics": "Oral bioavailability: 40%, Half-life: 11 hours, Hepatic metabolism (CYP2C9), Renal and fecal excretion",
+                "sideEffects": "Gastric irritation (less than non-selective NSAIDs), renal impairment, hypertension, edema, increased cardiovascular risk (with long-term use)",
+                "contraindications": "Sulfonamide allergy, History of NSAID-induced asthma/urticaria, Severe heart failure, Third trimester of pregnancy, Coronary artery bypass graft (CABG) surgery",
+                "drugInteractions": "Warfarin (↑ bleeding risk), ACE inhibitors/ARBs (↓ antihypertensive effect), Fluconazole (↑ celecoxib levels), Lithium (↑ lithium levels)",
+                "dosage": "100-200 mg every 12-24 hours (max 400 mg/day)",
+                "brandNames": "Celebrex"
+            },
+            {
+                "id": 20,
+                "name": "Tramadol",
+                "class": "Analgesic (Opioid - Weak μ-Agonist)",
+                "mechanism": "Binds to μ-opioid receptors and inhibits norepinephrine/serotonin reuptake, producing analgesia",
+                "indications": "Moderate to moderately severe pain",
+                "pharmacokinetics": "Oral bioavailability: 75%, Half-life: 6-7 hours (active metabolite: 7-9 hours), Hepatic metabolism (CYP2D6, CYP3A4), Renal excretion",
+                "sideEffects": "Nausea, dizziness, constipation, headache, somnolence, seizures (rare), serotonin syndrome (rare), respiratory depression (rare)",
+                "contraindications": "Acute intoxication with alcohol/opioids/psychotropic drugs, Uncontrolled epilepsy, MAO inhibitor use within 14 days",
+                "drugInteractions": "SSRIs/SNRIs/TCAs/MAOIs (↑ serotonin syndrome risk), CYP2D6 inhibitors (e.g., fluoxetine, quinidine), CYP3A4 inhibitors (e.g., ketoconazole)",
+                "dosage": "50-100 mg every 4-6 hours (max 400 mg/day; 300 mg/day for elderly or renal impairment)",
+                "brandNames": "Ultram, ConZip, Rybix ODT"
+            },
+
+            // Antidepressants
+            {
+                "id": 21,
+                "name": "Fluoxetine",
+                "class": "Antidepressant (SSRI - Selective Serotonin Reuptake Inhibitor)",
+                "mechanism": "Inhibits serotonin reuptake in the CNS, increasing synaptic serotonin levels",
+                "indications": "Major Depressive Disorder (MDD), Obsessive-Compulsive Disorder (OCD), Panic Disorder, Bulimia Nervosa, Premenstrual Dysphoric Disorder (PMDD)",
+                "pharmacokinetics": "Oral bioavailability: 70%, Half-life: 4-6 days (active metabolite: 4-16 days), Hepatic metabolism (CYP2D6, CYP2C9), Renal excretion",
+                "sideEffects": "Nausea, insomnia, headache, sexual dysfunction, weight changes, serotonin syndrome (rare), increased suicidal ideation (in children/young adults)",
+                "contraindications": "MAO inhibitor use within 14 days, Pimozide or thioridazine use (↑ QT prolongation risk)",
+                "drugInteractions": "MAOIs (↑ serotonin syndrome risk), Warfarin (↑ bleeding risk), CYP2D6 substrates (e.g., tramadol, codeine), CYP2C9 substrates (e.g., phenytoin)",
+                "dosage": "20-80 mg/day (MDD: 20-60 mg/day; OCD: 20-80 mg/day)",
+                "brandNames": "Prozac, Sarafem, Prozac Weekly"
+            },
+            {
+                "id": 22,
+                "name": "Sertraline",
+                "class": "Antidepressant (SSRI)",
+                "mechanism": "Inhibits serotonin reuptake in the CNS, increasing synaptic serotonin levels",
+                "indications": "Major Depressive Disorder (MDD), Obsessive-Compulsive Disorder (OCD), Panic Disorder, Post-Traumatic Stress Disorder (PTSD), Social Anxiety Disorder, Premenstrual Dysphoric Disorder (PMDD)",
+                "pharmacokinetics": "Oral bioavailability: 44%, Half-life: 26 hours, Hepatic metabolism (CYP2B6, CYP2C19, CYP2D6), Renal and fecal excretion",
+                "sideEffects": "Nausea, diarrhea, insomnia, headache, sexual dysfunction, weight changes, serotonin syndrome (rare), increased suicidal ideation (in children/young adults)",
+                "contraindications": "MAO inhibitor use within 14 days, Pimozide use (↑ QT prolongation risk)",
+                "drugInteractions": "MAOIs (↑ serotonin syndrome risk), Warfarin (↑ bleeding risk), CYP2D6 substrates (e.g., tramadol, codeine), CYP2B6 inhibitors (e.g., ticlopidine)",
+                "dosage": "50-200 mg/day (MDD: 50-200 mg/day; OCD: 50-200 mg/day; PTSD: 50-200 mg/day)",
+                "brandNames": "Zoloft"
+            },
+            {
+                "id": 23,
+                "name": "Venlafaxine",
+                "class": "Antidepressant (SNRI - Serotonin-Norepinephrine Reuptake Inhibitor)",
+                "mechanism": "Inhibits serotonin and norepinephrine reuptake in the CNS, increasing synaptic levels of both neurotransmitters",
+                "indications": "Major Depressive Disorder (MDD), Generalized Anxiety Disorder (GAD), Social Anxiety Disorder, Panic Disorder",
+                "pharmacokinetics": "Oral bioavailability: 45%, Half-life: 5 hours (active metabolite: 11 hours), Hepatic metabolism (CYP2D6), Renal excretion",
+                "sideEffects": "Nausea, headache, insomnia, dry mouth, sexual dysfunction, hypertension, serotonin syndrome (rare), increased suicidal ideation (in children/young adults)",
+                "contraindications": "MAO inhibitor use within 14 days",
+                "drugInteractions": "MAOIs (↑ serotonin syndrome risk), Warfarin (↑ bleeding risk), CYP2D6 substrates (e.g., tramadol, codeine), CYP3A4 inhibitors (e.g., ketoconazole)",
+                "dosage": "75-225 mg/day (MDD: 75-225 mg/day; GAD: 75-225 mg/day)",
+                "brandNames": "Effexor, Effexor XR"
+            },
+            {
+                "id": 24,
+                "name": "Bupropion",
+                "class": "Antidepressant (NDRI - Norepinephrine-Dopamine Reuptake Inhibitor)",
+                "mechanism": "Inhibits norepinephrine and dopamine reuptake in the CNS, increasing synaptic levels of both neurotransmitters",
+                "indications": "Major Depressive Disorder (MDD), Seasonal Affective Disorder (SAD), Smoking Cessation (as Zyban)",
+                "pharmacokinetics": "Oral bioavailability: 5-20%, Half-life: 21 hours (active metabolites: 20-37 hours), Hepatic metabolism (CYP2B6), Renal excretion",
+                "sideEffects": "Insomnia, dry mouth, headache, nausea, agitation, seizures (dose-related), weight loss, increased suicidal ideation (in children/young adults)",
+                "contraindications": "Seizure disorder, Bulimia/anorexia nervosa, MAO inhibitor use within 14 days, Abrupt discontinuation of alcohol/benzodiazepines",
+                "drugInteractions": "MAOIs (↑ hypertensive crisis risk), CYP2B6 inhibitors (e.g., ticlopidine), CYP2D6 substrates (e.g., tramadol, codeine)",
+                "dosage": "150-300 mg/day (MDD: 150-450 mg/day; Smoking cessation: 150-300 mg/day)",
+                "brandNames": "Wellbutrin, Wellbutrin SR, Wellbutrin XL, Zyban"
+            },
+            {
+                "id": 25,
+                "name": "Amitriptyline",
+                "class": "Antidepressant (TCA - Tricyclic Antidepressant)",
+                "mechanism": "Inhibits serotonin and norepinephrine reuptake in the CNS, increasing synaptic levels of both neurotransmitters; also blocks histamine, muscarinic, and alpha-adrenergic receptors",
+                "indications": "Major Depressive Disorder (MDD), Neuropathic Pain, Migraine Prophylaxis, Insomnia",
+                "pharmacokinetics": "Oral bioavailability: 45-50%, Half-life: 10-28 hours, Hepatic metabolism (CYP2D6), Renal excretion",
+                "sideEffects": "Dry mouth, constipation, blurred vision, urinary retention, sedation, weight gain, orthostatic hypotension, QT prolongation, increased suicidal ideation (in children/young adults)",
+                "contraindications": "MAO inhibitor use within 14 days, Acute recovery phase following MI, Glaucoma (narrow-angle), Urinary retention",
+                "drugInteractions": "MAOIs (↑ serotonin syndrome/hypertensive crisis risk), SSRIs/SNRIs (↑ serotonin syndrome risk), Anticholinergics (↑ anticholinergic effects), CYP2D6 inhibitors (e.g., fluoxetine, quinidine)",
+                "dosage": "25-150 mg/day (MDD: 75-150 mg/day; Neuropathic pain: 10-150 mg/day)",
+                "brandNames": "Elavil, Endep"
+            },
+
+            // Anticoagulants
+            {
+                "id": 26,
+                "name": "Warfarin",
+                "class": "Anticoagulant (Vitamin K Antagonist)",
+                "mechanism": "Inhibits vitamin K epoxide reductase, reducing the synthesis of vitamin K-dependent clotting factors (II, VII, IX, X) and proteins C and S",
+                "indications": "Prevention and treatment of thromboembolic disorders (e.g., deep vein thrombosis, pulmonary embolism, atrial fibrillation, mechanical heart valves)",
+                "pharmacokinetics": "Oral bioavailability: 100%, Half-life: 20-60 hours, Hepatic metabolism (CYP2C9, CYP1A2, CYP3A4), Renal excretion",
+                "sideEffects": "Bleeding, skin necrosis, purple toe syndrome, teratogenicity, alopecia",
+                "contraindications": "Pregnancy (except with mechanical heart valves), Active bleeding, Severe hepatic impairment, Uncontrolled hypertension, Recent surgery (high bleeding risk)",
+                "drugInteractions": "CYP2C9 inhibitors (e.g., amiodarone, fluconazole), CYP2C9 inducers (e.g., rifampin, carbamazepine), Vitamin K-rich foods (↓ anticoagulant effect), NSAIDs (↑ bleeding risk)",
+                "dosage": "2-10 mg/day (dose adjusted based on INR; target INR: 2-3 for most indications, 2.5-3.5 for mechanical heart valves)",
+                "brandNames": "Coumadin, Jantoven"
+            },
+            {
+                "id": 27,
+                "name": "Apixaban",
+                "class": "Anticoagulant (Direct Factor Xa Inhibitor)",
+                "mechanism": "Directly inhibits factor Xa, preventing the conversion of prothrombin to thrombin and reducing thrombus formation",
+                "indications": "Prevention of stroke/systemic embolism in nonvalvular atrial fibrillation, Treatment and prevention of deep vein thrombosis (DVT) and pulmonary embolism (PE), Postoperative venous thromboprophylaxis (hip/knee replacement)",
+                "pharmacokinetics": "Oral bioavailability: 50%, Half-life: 12 hours, Hepatic metabolism (CYP3A4), Renal and fecal excretion",
+                "sideEffects": "Bleeding, nausea, anemia, elevated liver enzymes",
+                "contraindications": "Active pathological bleeding, Severe hepatic impairment, Prosthetic heart valves",
+                "drugInteractions": "CYP3A4/P-gp inhibitors (e.g., ketoconazole, ritonavir), CYP3A4/P-gp inducers (e.g., rifampin, carbamazepine), Antiplatelet agents (↑ bleeding risk)",
+                "dosage": "5 mg twice daily (2.5 mg twice daily for patients with ≥2 of: age ≥80, weight ≤60 kg, or serum creatinine ≥1.5 mg/dL)",
+                "brandNames": "Eliquis"
+            },
+            {
+                "id": 28,
+                "name": "Rivaroxaban",
+                "class": "Anticoagulant (Direct Factor Xa Inhibitor)",
+                "mechanism": "Directly inhibits factor Xa, preventing the conversion of prothrombin to thrombin and reducing thrombus formation",
+                "indications": "Prevention of stroke/systemic embolism in nonvalvular atrial fibrillation, Treatment and prevention of deep vein thrombosis (DVT) and pulmonary embolism (PE), Postoperative venous thromboprophylaxis (hip/knee replacement), Reduction of major cardiovascular events in chronic CAD/PAD",
+                "pharmacokinetics": "Oral bioavailability: 80-100% (with food), Half-life: 5-9 hours (11-13 hours in elderly), Hepatic metabolism (CYP3A4, CYP2J2), Renal and fecal excretion",
+                "sideEffects": "Bleeding, nausea, elevated liver enzymes, syncope",
+                "contraindications": "Active pathological bleeding, Severe hepatic impairment, Prosthetic heart valves",
+                "drugInteractions": "CYP3A4/P-gp inhibitors (e.g., ketoconazole, ritonavir), CYP3A4/P-gp inducers (e.g., rifampin, carbamazepine), Antiplatelet agents (↑ bleeding risk)",
+                "dosage": "10-20 mg once daily (with food; 15-20 mg for DVT/PE treatment, 10 mg for thromboprophylaxis)",
+                "brandNames": "Xarelto"
+            },
+            {
+                "id": 29,
+                "name": "Enoxaparin",
+                "class": "Anticoagulant (Low Molecular Weight Heparin - LMWH)",
+                "mechanism": "Binds to antithrombin III, enhancing its inhibition of factor Xa and thrombin (IIa), preventing thrombus formation",
+                "indications": "Treatment and prevention of deep vein thrombosis (DVT) and pulmonary embolism (PE), Acute coronary syndromes (unstable angina, NSTEMI, STEMI), Postoperative venous thromboprophylaxis (hip/knee replacement, abdominal surgery)",
+                "pharmacokinetics": "Subcutaneous bioavailability: 90%, Half-life: 4.5-7 hours, Renal excretion",
+                "sideEffects": "Bleeding, thrombocytopenia (HIT), injection site reactions, elevated liver enzymes",
+                "contraindications": "Active major bleeding, History of heparin-induced thrombocytopenia (HIT), Severe renal impairment (for treatment doses)",
+                "drugInteractions": "Antiplatelet agents (↑ bleeding risk), NSAIDs (↑ bleeding risk), Warfarin (↑ bleeding risk)",
+                "dosage": "1 mg/kg every 12 hours or 1.5 mg/kg once daily (DVT/PE treatment); 30-40 mg once or twice daily (thromboprophylaxis)",
+                "brandNames": "Lovenox"
+            },
+            {
+                "id": 30,
+                "name": "Clopidogrel",
+                "class": "Antiplatelet (P2Y12 ADP Receptor Antagonist)",
+                "mechanism": "Irreversibly blocks the P2Y12 ADP receptor on platelets, inhibiting platelet aggregation",
+                "indications": "Acute coronary syndromes (unstable angina, NSTEMI, STEMI), Recent MI or stroke, Peripheral arterial disease (PAD), Post-PCI (percutaneous coronary intervention) with stent placement",
+                "pharmacokinetics": "Oral bioavailability: 50%, Half-life: 6 hours (active metabolite: 30 minutes), Hepatic metabolism (CYP2C19), Renal and fecal excretion",
+                "sideEffects": "Bleeding, bruising, rash, diarrhea, thrombotic thrombocytopenic purpura (TTP, rare)",
+                "contraindications": "Active pathological bleeding, Severe hepatic impairment",
+                "drugInteractions": "CYP2C19 inhibitors (e.g., omeprazole, esomeprazole), Warfarin (↑ bleeding risk), NSAIDs (↑ bleeding risk)",
+                "dosage": "75 mg once daily (loading dose: 300-600 mg for ACS)",
+                "brandNames": "Plavix"
+            },
+
+            // Statins
+            {
+                "id": 31,
+                "name": "Atorvastatin",
+                "class": "Statin (HMG-CoA Reductase Inhibitor)",
+                "mechanism": "Inhibits HMG-CoA reductase, the rate-limiting enzyme in cholesterol synthesis, leading to increased LDL receptor expression and reduced LDL cholesterol levels",
+                "indications": "Hypercholesterolemia, Mixed dyslipidemia, Primary and secondary prevention of cardiovascular events, Familial hypercholesterolemia",
+                "pharmacokinetics": "Oral bioavailability: 14%, Half-life: 14 hours, Hepatic metabolism (CYP3A4), Biliary excretion",
+                "sideEffects": "Myalgia, elevated liver enzymes, rhabdomyolysis (rare), new-onset diabetes (rare), gastrointestinal upset",
+                "contraindications": "Active liver disease, Pregnancy, Breastfeeding",
+                "drugInteractions": "CYP3A4 inhibitors (e.g., clarithromycin, grapefruit juice), Fibrates (↑ myopathy risk), Cyclosporine (↑ atorvastatin levels)",
+                "dosage": "10-80 mg once daily",
+                "brandNames": "Lipitor"
+            },
+            {
+                "id": 32,
+                "name": "Simvastatin",
+                "class": "Statin (HMG-CoA Reductase Inhibitor)",
+                "mechanism": "Inhibits HMG-CoA reductase, the rate-limiting enzyme in cholesterol synthesis, leading to increased LDL receptor expression and reduced LDL cholesterol levels",
+                "indications": "Hypercholesterolemia, Mixed dyslipidemia, Primary and secondary prevention of cardiovascular events, Familial hypercholesterolemia",
+                "pharmacokinetics": "Oral bioavailability: 5%, Half-life: 2 hours, Hepatic metabolism (CYP3A4), Biliary and renal excretion",
+                "sideEffects": "Myalgia, elevated liver enzymes, rhabdomyolysis (rare), new-onset diabetes (rare), gastrointestinal upset",
+                "contraindications": "Active liver disease, Pregnancy, Breastfeeding, Concomitant use with strong CYP3A4 inhibitors (e.g., itraconazole, ketoconazole, posaconazole, voriconazole, HIV protease inhibitors, boceprevir, telaprevir, nefazodone, gemfibrozil, cyclosporine, danazol)",
+                "drugInteractions": "CYP3A4 inhibitors (e.g., clarithromycin, grapefruit juice), Fibrates (↑ myopathy risk), Warfarin (↑ bleeding risk)",
+                "dosage": "10-40 mg once daily in the evening (80 mg only for patients on this dose for >12 months without myopathy)",
+                "brandNames": "Zocor"
+            },
+            {
+                "id": 33,
+                "name": "Rosuvastatin",
+                "class": "Statin (HMG-CoA Reductase Inhibitor)",
+                "mechanism": "Inhibits HMG-CoA reductase, the rate-limiting enzyme in cholesterol synthesis, leading to increased LDL receptor expression and reduced LDL cholesterol levels",
+                "indications": "Hypercholesterolemia, Mixed dyslipidemia, Primary and secondary prevention of cardiovascular events, Familial hypercholesterolemia, Hypertriglyceridemia",
+                "pharmacokinetics": "Oral bioavailability: 20%, Half-life: 19 hours, Hepatic metabolism (minimal CYP2C9), Biliary excretion",
+                "sideEffects": "Myalgia, elevated liver enzymes, rhabdomyolysis (rare), new-onset diabetes (rare), proteinuria (rare)",
+                "contraindications": "Active liver disease, Pregnancy, Breastfeeding",
+                "drugInteractions": "Cyclosporine (↑ rosuvastatin levels), Warfarin (↑ bleeding risk), Fibrates (↑ myopathy risk), Antacids (↓ rosuvastatin absorption if taken within 2 hours)",
+                "dosage": "5-40 mg once daily (Asian patients: start with 5 mg; max 20 mg with cyclosporine)",
+                "brandNames": "Crestor"
+            },
+            {
+                "id": 34,
+                "name": "Pravastatin",
+                "class": "Statin (HMG-CoA Reductase Inhibitor)",
+                "mechanism": "Inhibits HMG-CoA reductase, the rate-limiting enzyme in cholesterol synthesis, leading to increased LDL receptor expression and reduced LDL cholesterol levels",
+                "indications": "Hypercholesterolemia, Mixed dyslipidemia, Primary and secondary prevention of cardiovascular events, Familial hypercholesterolemia",
+                "pharmacokinetics": "Oral bioavailability: 17%, Half-life: 1.8 hours, Hepatic metabolism (minimal CYP450), Renal and biliary excretion",
+                "sideEffects": "Myalgia, elevated liver enzymes, rhabdomyolysis (rare), new-onset diabetes (rare), gastrointestinal upset",
+                "contraindications": "Active liver disease, Pregnancy, Breastfeeding",
+                "drugInteractions": "Fibrates (↑ myopathy risk), Cyclosporine (↑ pravastatin levels), Warfarin (↑ bleeding risk)",
+                "dosage": "10-80 mg once daily in the evening",
+                "brandNames": "Pravachol"
+            },
+            {
+                "id": 35,
+                "name": "Lovastatin",
+                "class": "Statin (HMG-CoA Reductase Inhibitor)",
+                "mechanism": "Inhibits HMG-CoA reductase, the rate-limiting enzyme in cholesterol synthesis, leading to increased LDL receptor expression and reduced LDL cholesterol levels",
+                "indications": "Hypercholesterolemia, Mixed dyslipidemia, Primary and secondary prevention of cardiovascular events, Familial hypercholesterolemia",
+                "pharmacokinetics": "Oral bioavailability: 5% (30% with extended-release), Half-life: 1-2 hours, Hepatic metabolism (CYP3A4), Biliary and renal excretion",
+                "sideEffects": "Myalgia, elevated liver enzymes, rhabdomyolysis (rare), new-onset diabetes (rare), gastrointestinal upset",
+                "contraindications": "Active liver disease, Pregnancy, Breastfeeding, Concomitant use with strong CYP3A4 inhibitors (e.g., itraconazole, ketoconazole, posaconazole, voriconazole, HIV protease inhibitors, boceprevir, telaprevir, nefazodone, gemfibrozil, cyclosporine, danazol)",
+                "drugInteractions": "CYP3A4 inhibitors (e.g., clarithromycin, grapefruit juice), Fibrates (↑ myopathy risk), Warfarin (↑ bleeding risk)",
+                "dosage": "20-80 mg once daily in the evening (immediate-release) or at bedtime (extended-release)",
+                "brandNames": "Mevacor, Altoprev"
+            },
+
+            // Proton Pump Inhibitors (PPIs)
+            {
+                "id": 36,
+                "name": "Omeprazole",
+                "class": "Proton Pump Inhibitor (PPI)",
+                "mechanism": "Irreversibly inhibits the H+/K+ ATPase (proton pump) in gastric parietal cells, reducing gastric acid secretion",
+                "indications": "Gastroesophageal Reflux Disease (GERD), Peptic Ulcer Disease (PUD), H. pylori eradication (with antibiotics), Zollinger-Ellison Syndrome, Stress Ulcer Prophylaxis",
+                "pharmacokinetics": "Oral bioavailability: 30-40%, Half-life: 0.5-1 hour, Hepatic metabolism (CYP2C19, CYP3A4), Renal excretion",
+                "sideEffects": "Headache, nausea, diarrhea, abdominal pain, vitamin B12 deficiency (long-term use), hypomagnesemia (long-term use), increased risk of fractures (long-term use), Clostridioides difficile infection (long-term use)",
+                "contraindications": "Severe hepatic impairment, Concomitant use with rilpivirine",
+                "drugInteractions": "Clopidogrel (↓ antiplatelet effect), Warfarin (↑ bleeding risk), Digoxin (↑ digoxin levels), CYP2C19 substrates (e.g., diazepam, phenytoin)",
+                "dosage": "20-40 mg once daily (GERD: 20 mg/day; PUD: 20-40 mg/day; H. pylori: 20-40 mg twice daily with antibiotics)",
+                "brandNames": "Prilosec, Losec, Zegerid"
+            },
+            {
+                "id": 37,
+                "name": "Esomeprazole",
+                "class": "Proton Pump Inhibitor (PPI)",
+                "mechanism": "Irreversibly inhibits the H+/K+ ATPase (proton pump) in gastric parietal cells, reducing gastric acid secretion (S-isomer of omeprazole, with higher bioavailability)",
+                "indications": "Gastroesophageal Reflux Disease (GERD), Peptic Ulcer Disease (PUD), H. pylori eradication (with antibiotics), Zollinger-Ellison Syndrome, Stress Ulcer Prophylaxis",
+                "pharmacokinetics": "Oral bioavailability: 64-90%, Half-life: 1-1.5 hours, Hepatic metabolism (CYP2C19, CYP3A4), Renal excretion",
+                "sideEffects": "Headache, nausea, diarrhea, abdominal pain, vitamin B12 deficiency (long-term use), hypomagnesemia (long-term use), increased risk of fractures (long-term use), Clostridioides difficile infection (long-term use)",
+                "contraindications": "Severe hepatic impairment, Concomitant use with rilpivirine",
+                "drugInteractions": "Clopidogrel (↓ antiplatelet effect), Warfarin (↑ bleeding risk), Digoxin (↑ digoxin levels), CYP2C19 substrates (e.g., diazepam, phenytoin)",
+                "dosage": "20-40 mg once daily (GERD: 20-40 mg/day; PUD: 20-40 mg/day; H. pylori: 40 mg once daily with antibiotics)",
+                "brandNames": "Nexium"
+            },
+            {
+                "id": 38,
+                "name": "Pantoprazole",
+                "class": "Proton Pump Inhibitor (PPI)",
+                "mechanism": "Irreversibly inhibits the H+/K+ ATPase (proton pump) in gastric parietal cells, reducing gastric acid secretion",
+                "indications": "Gastroesophageal Reflux Disease (GERD), Peptic Ulcer Disease (PUD), Zollinger-Ellison Syndrome, Stress Ulcer Prophylaxis",
+                "pharmacokinetics": "Oral bioavailability: 77%, Half-life: 1 hour, Hepatic metabolism (CYP2C19, CYP3A4), Renal excretion",
+                "sideEffects": "Headache, nausea, diarrhea, abdominal pain, vitamin B12 deficiency (long-term use), hypomagnesemia (long-term use), increased risk of fractures (long-term use), Clostridioides difficile infection (long-term use)",
+                "contraindications": "Severe hepatic impairment",
+                "drugInteractions": "Clopidogrel (↓ antiplatelet effect, less than omeprazole/esomeprazole), Warfarin (↑ bleeding risk), Methotrexate (↑ methotrexate levels)",
+                "dosage": "20-40 mg once daily (GERD: 40 mg/day; PUD: 40 mg/day)",
+                "brandNames": "Protonix"
+            },
+            {
+                "id": 39,
+                "name": "Lansoprazole",
+                "class": "Proton Pump Inhibitor (PPI)",
+                "mechanism": "Irreversibly inhibits the H+/K+ ATPase (proton pump) in gastric parietal cells, reducing gastric acid secretion",
+                "indications": "Gastroesophageal Reflux Disease (GERD), Peptic Ulcer Disease (PUD), H. pylori eradication (with antibiotics), Zollinger-Ellison Syndrome",
+                "pharmacokinetics": "Oral bioavailability: 80-90%, Half-life: 1.5 hours, Hepatic metabolism (CYP2C19, CYP3A4), Renal and biliary excretion",
+                "sideEffects": "Headache, nausea, diarrhea, abdominal pain, vitamin B12 deficiency (long-term use), hypomagnesemia (long-term use), increased risk of fractures (long-term use), Clostridioides difficile infection (long-term use)",
+                "contraindications": "Severe hepatic impairment",
+                "drugInteractions": "Clopidogrel (↓ antiplatelet effect), Warfarin (↑ bleeding risk), Theophylline (↑ theophylline levels), Sucralfate (↓ lansoprazole absorption)",
+                "dosage": "15-30 mg once daily (GERD: 15-30 mg/day; PUD: 15-30 mg/day; H. pylori: 30 mg twice daily with antibiotics)",
+                "brandNames": "Prevacid"
+            },
+            {
+                "id": 40,
+                "name": "Rabeprazole",
+                "class": "Proton Pump Inhibitor (PPI)",
+                "mechanism": "Irreversibly inhibits the H+/K+ ATPase (proton pump) in gastric parietal cells, reducing gastric acid secretion",
+                "indications": "Gastroesophageal Reflux Disease (GERD), Peptic Ulcer Disease (PUD), H. pylori eradication (with antibiotics), Zollinger-Ellison Syndrome",
+                "pharmacokinetics": "Oral bioavailability: 52%, Half-life: 1-2 hours, Hepatic metabolism (non-enzymatic reduction), Renal and biliary excretion",
+                "sideEffects": "Headache, nausea, diarrhea, abdominal pain, vitamin B12 deficiency (long-term use), hypomagnesemia (long-term use), increased risk of fractures (long-term use), Clostridioides difficile infection (long-term use)",
+                "contraindications": "Severe hepatic impairment",
+                "drugInteractions": "Clopidogrel (↓ antiplatelet effect, less than omeprazole/esomeprazole), Warfarin (↑ bleeding risk), Digoxin (↑ digoxin levels), Cyclosporine (↑ cyclosporine levels)",
+                "dosage": "20 mg once or twice daily (GERD: 20 mg/day; PUD: 20 mg/day; H. pylori: 20 mg twice daily with antibiotics)",
+                "brandNames": "Aciphex"
+            },
+
+            // Antipsychotics
+            {
+                "id": 41,
+                "name": "Quetiapine",
+                "class": "Antipsychotic (Atypical - Second Generation)",
+                "mechanism": "Antagonizes dopamine D2 and serotonin 5-HT2A receptors; also blocks histamine H1 and alpha-1 adrenergic receptors",
+                "indications": "Schizophrenia, Bipolar Disorder (manic and depressive episodes), Major Depressive Disorder (adjunctive therapy), Generalized Anxiety Disorder (off-label)",
+                "pharmacokinetics": "Oral bioavailability: 9%, Half-life: 6-7 hours (active metabolite: 9-12 hours), Hepatic metabolism (CYP3A4), Renal and fecal excretion",
+                "sideEffects": "Sedation, weight gain, dry mouth, constipation, orthostatic hypotension, extrapyramidal symptoms (rare), QT prolongation, increased risk of diabetes and dyslipidemia",
+                "contraindications": "Dementia-related psychosis (↑ mortality risk), Concomitant use with strong CYP3A4 inducers/inhibitors",
+                "drugInteractions": "CYP3A4 inhibitors (e.g., ketoconazole, ritonavir), CYP3A4 inducers (e.g., carbamazepine, rifampin), Antihypertensives (↑ orthostatic hypotension risk), CNS depressants (↑ sedation)",
+                "dosage": "Schizophrenia: 150-750 mg/day; Bipolar Disorder: 200-800 mg/day; MDD (adjunct): 150-300 mg/day",
+                "brandNames": "Seroquel, Seroquel XR"
+            },
+            {
+                "id": 42,
+                "name": "Risperidone",
+                "class": "Antipsychotic (Atypical - Second Generation)",
+                "mechanism": "Antagonizes dopamine D2 and serotonin 5-HT2A receptors; also blocks alpha-1 adrenergic and histamine H1 receptors",
+                "indications": "Schizophrenia, Bipolar Disorder (manic and mixed episodes), Irritability associated with Autism Spectrum Disorder, Tourette's Syndrome (off-label)",
+                "pharmacokinetics": "Oral bioavailability: 70%, Half-life: 3-20 hours (active metabolite: 21-30 hours), Hepatic metabolism (CYP2D6), Renal excretion",
+                "sideEffects": "Extrapyramidal symptoms, hyperprolactinemia, weight gain, sedation, orthostatic hypotension, QT prolongation, increased risk of diabetes and dyslipidemia",
+                "contraindications": "Dementia-related psychosis (↑ mortality risk)",
+                "drugInteractions": "CYP2D6 inhibitors (e.g., fluoxetine, paroxetine), Antihypertensives (↑ orthostatic hypotension risk), CNS depressants (↑ sedation), Levodopa (↓ antiparkinsonian effect)",
+                "dosage": "Schizophrenia: 2-8 mg/day; Bipolar Disorder: 2-6 mg/day; Autism-related irritability: 0.5-3 mg/day",
+                "brandNames": "Risperdal, Risperdal Consta (long-acting injectable)"
+            },
+            {
+                "id": 43,
+                "name": "Aripiprazole",
+                "class": "Antipsychotic (Atypical - Second Generation - Dopamine Partial Agonist)",
+                "mechanism": "Partial agonist at dopamine D2 and serotonin 5-HT1A receptors; antagonist at serotonin 5-HT2A receptors",
+                "indications": "Schizophrenia, Bipolar Disorder (manic and mixed episodes), Major Depressive Disorder (adjunctive therapy), Irritability associated with Autism Spectrum Disorder, Tourette's Syndrome",
+                "pharmacokinetics": "Oral bioavailability: 87%, Half-life: 75 hours (active metabolite: 94 hours), Hepatic metabolism (CYP2D6, CYP3A4), Renal and fecal excretion",
+                "sideEffects": "Akathisia, nausea, headache, insomnia, weight gain, orthostatic hypotension, QT prolongation, increased risk of compulsive behaviors (e.g., gambling, shopping)",
+                "contraindications": "Dementia-related psychosis (↑ mortality risk)",
+                "drugInteractions": "CYP2D6 inhibitors (e.g., fluoxetine, paroxetine), CYP3A4 inhibitors (e.g., ketoconazole, ritonavir), CYP3A4 inducers (e.g., carbamazepine, rifampin), Antihypertensives (↑ orthostatic hypotension risk)",
+                "dosage": "Schizophrenia: 10-30 mg/day; Bipolar Disorder: 15-30 mg/day; MDD (adjunct): 2-15 mg/day; Autism-related irritability: 5-15 mg/day",
+                "brandNames": "Abilify, Abilify Maintena (long-acting injectable), Aristada (long-acting injectable)"
+            },
+            {
+                "id": 44,
+                "name": "Olanzapine",
+                "class": "Antipsychotic (Atypical - Second Generation)",
+                "mechanism": "Antagonizes dopamine D2 and serotonin 5-HT2A receptors; also blocks histamine H1, alpha-1 adrenergic, and muscarinic receptors",
+                "indications": "Schizophrenia, Bipolar Disorder (manic and mixed episodes), Treatment-resistant Major Depressive Disorder (with fluoxetine), Agitation associated with schizophrenia or bipolar mania",
+                "pharmacokinetics": "Oral bioavailability: 60%, Half-life: 21-54 hours, Hepatic metabolism (CYP1A2, UGT1A4), Renal excretion",
+                "sideEffects": "Weight gain, sedation, dry mouth, constipation, orthostatic hypotension, extrapyramidal symptoms (rare), QT prolongation, increased risk of diabetes and dyslipidemia",
+                "contraindications": "Dementia-related psychosis (↑ mortality risk)",
+                "drugInteractions": "CYP1A2 inhibitors (e.g., fluvoxamine, ciprofloxacin), CYP1A2 inducers (e.g., carbamazepine, tobacco smoke), Antihypertensives (↑ orthostatic hypotension risk), CNS depressants (↑ sedation)",
+                "dosage": "Schizophrenia: 10-20 mg/day; Bipolar Disorder: 5-20 mg/day; MDD (with fluoxetine): 5-20 mg/day",
+                "brandNames": "Zyprexa, Zyprexa Relprevv (long-acting injectable), Symbyax (with fluoxetine)"
+            },
+            {
+                "id": 45,
+                "name": "Ziprasidone",
+                "class": "Antipsychotic (Atypical - Second Generation)",
+                "mechanism": "Antagonizes dopamine D2 and serotonin 5-HT2A receptors; also blocks serotonin 5-HT1D and 5-HT2C receptors, and inhibits serotonin/norepinephrine reuptake",
+                "indications": "Schizophrenia, Bipolar Disorder (manic and mixed episodes), Agitation associated with schizophrenia",
+                "pharmacokinetics": "Oral bioavailability: 60% (with food), Half-life: 7 hours, Hepatic metabolism (aldehyde oxidase, CYP3A4), Renal and fecal excretion",
+                "sideEffects": "Sedation, extrapyramidal symptoms, nausea, headache, QT prolongation, orthostatic hypotension, increased risk of diabetes and dyslipidemia (less than other atypical antipsychotics)",
+                "contraindications": "History of QT prolongation, Recent MI, Uncompensated heart failure, Concomitant use with other QT-prolonging drugs",
+                "drugInteractions": "QT-prolonging drugs (e.g., amiodarone, sotalol), CYP3A4 inhibitors (e.g., ketoconazole, ritonavir), CYP3A4 inducers (e.g., carbamazepine, rifampin), Antihypertensives (↑ orthostatic hypotension risk)",
+                "dosage": "Schizophrenia: 40-160 mg/day in divided doses; Bipolar Disorder: 80-160 mg/day in divided doses",
+                "brandNames": "Geodon"
+            },
+
+            // Antiepileptics
+            {
+                "id": 46,
+                "name": "Levetiracetam",
+                "class": "Antiepileptic (Pyrrolidone Derivative)",
+                "mechanism": "Binds to synaptic vesicle protein 2A (SV2A), modulating neurotransmitter release; may also inhibit N-type calcium channels",
+                "indications": "Partial-onset seizures, Myoclonic seizures, Primary generalized tonic-clonic seizures",
+                "pharmacokinetics": "Oral bioavailability: 100%, Half-life: 6-8 hours, Minimal hepatic metabolism, Renal excretion (66% unchanged)",
+                "sideEffects": "Somnolence, asthenia, headache, infection, behavioral symptoms (e.g., aggression, irritability), dizziness",
+                "contraindications": "Hypersensitivity to levetiracetam",
+                "drugInteractions": "Minimal drug interactions (not metabolized by CYP450)",
+                "dosage": "Initial: 500 mg twice daily; Maintenance: 1000-3000 mg/day in divided doses (max 3000 mg/day)",
+                "brandNames": "Keppra, Keppra XR, Spritam (orally disintegrating tablet)"
+            },
+            {
+                "id": 47,
+                "name": "Lamotrigine",
+                "class": "Antiepileptic (Phenyltriazine)",
+                "mechanism": "Inhibits voltage-sensitive sodium channels, stabilizing neuronal membranes and modulating presynaptic glutamate release",
+                "indications": "Partial-onset seizures, Primary generalized tonic-clonic seizures, Bipolar Disorder (maintenance treatment)",
+                "pharmacokinetics": "Oral bioavailability: 98%, Half-life: 25-33 hours (monotherapy), Hepatic metabolism (glucuronidation), Renal excretion",
+                "sideEffects": "Rash (including Stevens-Johnson syndrome), headache, dizziness, diplopia, nausea, ataxia, insomnia",
+                "contraindications": "History of rash with prior lamotrigine use",
+                "drugInteractions": "Valproate (↑ lamotrigine levels), Carbamazepine/phenytoin/phenobarbital (↓ lamotrigine levels), Oral contraceptives (↓ lamotrigine levels)",
+                "dosage": "Seizures (with valproate): 25 mg every other day for 2 weeks, then 25 mg/day; Seizures (without valproate): 25 mg/day for 2 weeks, then 50 mg/day; Bipolar Disorder: 25-200 mg/day",
+                "brandNames": "Lamictal, Lamictal XR, Lamictal ODT"
+            },
+            {
+                "id": 48,
+                "name": "Valproic Acid",
+                "class": "Antiepileptic (Carboxylic Acid)",
+                "mechanism": "Increases GABA levels by inhibiting GABA transaminase and succinic semialdehyde dehydrogenase; also blocks voltage-sensitive sodium channels and T-type calcium channels",
+                "indications": "Partial-onset seizures, Primary generalized tonic-clonic seizures, Absence seizures, Bipolar Disorder (manic episodes), Migraine prophylaxis",
+                "pharmacokinetics": "Oral bioavailability: 100%, Half-life: 9-16 hours, Hepatic metabolism (glucuronidation, beta-oxidation, CYP2C9, CYP2C19), Renal excretion",
+                "sideEffects": "Nausea, vomiting, tremor, weight gain, alopecia, hepatotoxicity, pancreatitis (rare), teratogenicity (neural tube defects), thrombocytopenia",
+                "contraindications": "Hepatic disease, Urea cycle disorders, Mitochondrial disorders (POLG mutations), Pregnancy (for migraine prophylaxis)",
+                "drugInteractions": "Lamotrigine (↑ lamotrigine levels), Carbapenem antibiotics (↓ valproate levels), Warfarin (↑ bleeding risk), Topiramate (↑ hyperammonemia risk)",
+                "dosage": "Seizures: 10-60 mg/kg/day in divided doses; Bipolar Disorder: 750-3000 mg/day in divided doses; Migraine prophylaxis: 500-1000 mg/day in divided doses",
+                "brandNames": "Depakote, Depakote ER, Depakene, Stavzor"
+            },
+            {
+                "id": 49,
+                "name": "Carbamazepine",
+                "class": "Antiepileptic (Iminostilbene)",
+                "mechanism": "Blocks voltage-sensitive sodium channels, stabilizing neuronal membranes and reducing high-frequency neuronal firing",
+                "indications": "Partial-onset seizures, Primary generalized tonic-clonic seizures, Trigeminal neuralgia, Bipolar Disorder (manic episodes)",
+                "pharmacokinetics": "Oral bioavailability: 75-85%, Half-life: 25-65 hours (initial), 12-17 hours (chronic use, autoinduction), Hepatic metabolism (CYP3A4), Renal excretion",
+                "sideEffects": "Dizziness, drowsiness, nausea, vomiting, diplopia, ataxia, hyponatremia, rash (including Stevens-Johnson syndrome), aplastic anemia, agranulocytosis, hepatotoxicity",
+                "contraindications": "History of bone marrow suppression, MAO inhibitor use within 14 days, Hypersensitivity to tricyclic antidepressants",
+                "drugInteractions": "CYP3A4 inhibitors (e.g., ketoconazole, ritonavir), CYP3A4 inducers (e.g., rifampin, phenytoin), Warfarin (↓ warfarin levels), Oral contraceptives (↓ efficacy), Lamotrigine (↓ lamotrigine levels)",
+                "dosage": "Seizures: 200-1600 mg/day in divided doses; Trigeminal neuralgia: 200-1200 mg/day in divided doses; Bipolar Disorder: 400-1600 mg/day in divided doses",
+                "brandNames": "Tegretol, Tegretol XR, Carbatrol, Equetro"
+            },
+            {
+                "id": 50,
+                "name": "Phenytoin",
+                "class": "Antiepileptic (Hydantoin)",
+                "mechanism": "Blocks voltage-sensitive sodium channels, stabilizing neuronal membranes and reducing high-frequency neuronal firing",
+                "indications": "Partial-onset seizures, Primary generalized tonic-clonic seizures, Status epilepticus, Seizure prophylaxis following neurosurgery",
+                "pharmacokinetics": "Oral bioavailability: 90%, Half-life: 7-42 hours (dose-dependent), Hepatic metabolism (CYP2C9, CYP2C19), Renal excretion",
+                "sideEffects": "Nystagmus, ataxia, gingival hyperplasia, hirsutism, rash (including Stevens-Johnson syndrome), osteomalacia, megaloblastic anemia, teratogenicity (fetal hydantoin syndrome), purple glove syndrome (IV administration)",
+                "contraindications": "Sinus bradycardia, SA block, 2nd/3rd degree AV block, Adams-Stokes syndrome, History of prior acute hepatotoxicity due to phenytoin",
+                "drugInteractions": "CYP2C9/CYP2C19 inhibitors (e.g., fluconazole, isoniazid), CYP2C9/CYP2C19 inducers (e.g., rifampin, carbamazepine), Warfarin (↑ or ↓ warfarin levels), Oral contraceptives (↓ efficacy), Valproate (↑ phenytoin levels)",
+                "dosage": "Seizures: 300-600 mg/day in divided doses (target serum concentration: 10-20 mcg/mL); Status epilepticus: 15-20 mg/kg IV (max rate: 50 mg/min)",
+                "brandNames": "Dilantin, Phenytek"
+            },
+
+            // Additional Drugs (51-60)
+            {
+                "id": 51,
+                "name": "Albuterol (Salbutamol)",
+                "class": "Bronchodilator (Short-Acting Beta-2 Agonist - SABA)",
+                "mechanism": "Stimulates beta-2 adrenergic receptors, relaxing bronchial smooth muscle and causing bronchodilation",
+                "indications": "Asthma (acute bronchospasm), Chronic Obstructive Pulmonary Disease (COPD), Exercise-Induced Bronchospasm (EIB)",
+                "pharmacokinetics": "Inhaled bioavailability: 10-20%, Oral bioavailability: 50%, Half-life: 3.8-6 hours, Hepatic metabolism, Renal excretion",
+                "sideEffects": "Tremor, tachycardia, palpitations, headache, hypokalemia, paradoxical bronchospasm (rare)",
+                "contraindications": "Hypersensitivity to albuterol or milk proteins (for some formulations)",
+                "drugInteractions": "Beta-blockers (↓ bronchodilator effect), Diuretics (↑ hypokalemia risk), MAOIs/tricyclic antidepressants (↑ cardiovascular effects)",
+                "dosage": "Inhaler: 90 mcg/puff, 1-2 puffs every 4-6 hours as needed; Nebulizer: 2.5 mg every 4-8 hours as needed",
+                "brandNames": "ProAir HFA, Proventil HFA, Ventolin HFA, AccuNeb"
+            },
+            {
+                "id": 52,
+                "name": "Montelukast",
+                "class": "Leukotriene Receptor Antagonist",
+                "mechanism": "Selectively blocks cysteinyl leukotriene receptors (CysLT1), reducing bronchoconstriction, mucus secretion, and inflammation",
+                "indications": "Asthma (prophylaxis and chronic treatment), Allergic Rhinitis, Exercise-Induced Bronchospasm (EIB) prophylaxis",
+                "pharmacokinetics": "Oral bioavailability: 64%, Half-life: 2.7-5.5 hours, Hepatic metabolism (CYP2C8, CYP3A4), Biliary excretion",
+                "sideEffects": "Headache, abdominal pain, neuropsychiatric events (e.g., agitation, aggression, depression, suicidal ideation - rare)",
+                "contraindications": "Hypersensitivity to montelukast",
+                "drugInteractions": "Phenobarbital/rifampin (↓ montelukast levels), Gemfibrozil (↑ montelukast levels)",
+                "dosage": "10 mg once daily in the evening (adults); 4-5 mg once daily (children)",
+                "brandNames": "Singulair"
+            },
+            {
+                "id": 53,
+                "name": "Prednisone",
+                "class": "Corticosteroid (Glucocorticoid)",
+                "mechanism": "Binds to glucocorticoid receptors, modulating gene expression to reduce inflammation and suppress the immune system",
+                "indications": "Inflammatory conditions (e.g., asthma, rheumatoid arthritis, ulcerative colitis, Crohn's disease), Allergic reactions, Immunosuppression, Acute exacerbations of multiple sclerosis, Adrenal insufficiency",
+                "pharmacokinetics": "Oral bioavailability: 80-90%, Half-life: 2.5-3.5 hours, Hepatic metabolism, Renal excretion",
+                "sideEffects": "Hyperglycemia, weight gain, fluid retention, hypertension, osteoporosis, adrenal suppression, mood changes, increased infection risk, cataracts, glaucoma",
+                "contraindications": "Systemic fungal infections, Live vaccines (with immunosuppressive doses)",
+                "drugInteractions": "NSAIDs (↑ GI bleeding risk), Warfarin (↑ or ↓ INR), CYP3A4 inducers (e.g., rifampin, carbamazepine), CYP3A4 inhibitors (e.g., ketoconazole, ritonavir), Fluoroquinolones (↑ tendon rupture risk)",
+                "dosage": "5-60 mg/day (dose and duration depend on indication; taper for long-term use)",
+                "brandNames": "Deltasone, Rayos (delayed-release)"
+            },
+            {
+                "id": 54,
+                "name": "Allopurinol",
+                "class": "Xanthine Oxidase Inhibitor",
+                "mechanism": "Inhibits xanthine oxidase, reducing uric acid production",
+                "indications": "Gout (prophylaxis and treatment), Hyperuricemia (e.g., tumor lysis syndrome, Lesch-Nyhan syndrome)",
+                "pharmacokinetics": "Oral bioavailability: 80%, Half-life: 1-2 hours (active metabolite: 15-25 hours), Hepatic metabolism, Renal excretion",
+                "sideEffects": "Rash (including Stevens-Johnson syndrome), nausea, diarrhea, hepatotoxicity, acute gout attack (initial treatment), hypersensitivity syndrome (rare)",
+                "contraindications": "Hypersensitivity to allopurinol, Concomitant use with didanosine",
+                "drugInteractions": "Azathioprine/6-mercaptopurine (↑ toxicity), Warfarin (↑ bleeding risk), Thiazide diuretics (↑ allopurinol toxicity), Amoxicillin/ampicillin (↑ rash risk)",
+                "dosage": "100-800 mg/day in divided doses (start with 100 mg/day, titrate based on uric acid levels)",
+                "brandNames": "Zyloprim, Aloprim (IV)"
+            },
+            {
+                "id": 55,
+                "name": "Furosemide",
+                "class": "Loop Diuretic",
+                "mechanism": "Inhibits the Na+/K+/2Cl- cotransporter in the thick ascending limb of the loop of Henle, increasing sodium, chloride, and water excretion",
+                "indications": "Edema (associated with heart failure, cirrhosis, or renal disease), Hypertension, Acute pulmonary edema",
+                "pharmacokinetics": "Oral bioavailability: 50%, Half-life: 1.5-2 hours, Minimal hepatic metabolism, Renal excretion",
+                "sideEffects": "Hypokalemia, hyponatremia, hypomagnesemia, dehydration, hypotension, ototoxicity (high doses), hyperuricemia, hyperglycemia",
+                "contraindications": "Anuria, Hepatic coma, Severe electrolyte depletion",
+                "drugInteractions": "NSAIDs (↓ diuretic effect), Digoxin (↑ toxicity due to hypokalemia), Aminoglycosides (↑ ototoxicity risk), Lithium (↑ lithium levels)",
+                "dosage": "20-80 mg/day (oral); 20-40 mg IV (max 200 mg/dose)",
+                "brandNames": "Lasix"
+            },
+            {
+                "id": 56,
+                "name": "Spironolactone",
+                "class": "Potassium-Sparing Diuretic (Aldosterone Antagonist)",
+                "mechanism": "Competitively inhibits aldosterone receptors in the distal convoluted tubule and collecting duct, increasing sodium and water excretion while conserving potassium",
+                "indications": "Edema (associated with heart failure, cirrhosis, or nephrotic syndrome), Hypertension, Primary hyperaldosteronism, Heart failure (NYHA Class III/IV), Hirsutism (off-label), Acne (off-label)",
+                "pharmacokinetics": "Oral bioavailability: 65%, Half-life: 1.4 hours (active metabolite: 13-24 hours), Hepatic metabolism, Renal excretion",
+                "sideEffects": "Hyperkalemia, gynecomastia, menstrual irregularities, impotence, diarrhea, gastritis, drowsiness",
+                "contraindications": "Hyperkalemia, Anuria, Acute renal insufficiency, Addison's disease, Concomitant use with eplerenone",
+                "drugInteractions": "ACE inhibitors/ARBs (↑ hyperkalemia risk), Potassium supplements (↑ hyperkalemia risk), Digoxin (↑ digoxin levels), NSAIDs (↓ diuretic effect)",
+                "dosage": "25-400 mg/day in divided doses (heart failure: 12.5-50 mg/day; hypertension: 25-100 mg/day)",
+                "brandNames": "Aldactone"
+            },
+            {
+                "id": 57,
+                "name": "Hydroxychloroquine",
+                "class": "Antimalarial (Aminoquinoline)",
+                "mechanism": "Inhibits heme polymerase, leading to accumulation of toxic heme in malaria parasites; also has anti-inflammatory and immunomodulatory effects (exact mechanism unclear)",
+                "indications": "Malaria (prophylaxis and treatment), Rheumatoid Arthritis, Systemic Lupus Erythematosus (SLE), Porphyria Cutanea Tarda (off-label), COVID-19 (investigational)",
+                "pharmacokinetics": "Oral bioavailability: 74%, Half-life: 40-50 days, Hepatic metabolism (CYP2D6, CYP3A4), Renal excretion",
+                "sideEffects": "Nausea, diarrhea, abdominal pain, retinopathy (long-term use), cardiomyopathy (rare), hypoglycemia, neuropsychiatric effects (rare), skin hyperpigmentation",
+                "contraindications": "Retinal or visual field changes, Long-term use in children, Hypersensitivity to 4-aminoquinoline compounds",
+                "drugInteractions": "Digoxin (↑ digoxin levels), Insulin/oral hypoglycemics (↑ hypoglycemia risk), CYP2D6 substrates (e.g., metoprolol), CYP3A4 inhibitors/inducers",
+                "dosage": "Malaria prophylaxis: 400 mg once weekly; Rheumatoid Arthritis: 200-400 mg/day; SLE: 200-400 mg/day",
+                "brandNames": "Plaquenil"
+            },
+            {
+                "id": 58,
+                "name": "Methotrexate",
+                "class": "Antimetabolite (Folate Antagonist)",
+                "mechanism": "Inhibits dihydrofolate reductase, reducing tetrahydrofolate synthesis and impairing DNA/RNA synthesis; also has anti-inflammatory and immunosuppressive effects",
+                "indications": "Rheumatoid Arthritis, Psoriasis, Psoriatic Arthritis, Acute Lymphoblastic Leukemia (ALL), Non-Hodgkin Lymphoma, Ectopic Pregnancy (off-label), Crohn's Disease (off-label)",
+                "pharmacokinetics": "Oral bioavailability: 60-90% (low doses), 20-80% (high doses), Half-life: 3-10 hours, Minimal hepatic metabolism, Renal excretion (80-90%)",
+                "sideEffects": "Nausea, vomiting, stomatitis, hepatotoxicity, myelosuppression, pulmonary toxicity, nephrotoxicity, teratogenicity, lymphoma (rare)",
+                "contraindications": "Pregnancy, Breastfeeding, Alcoholism, Chronic liver disease, Immunodeficiency syndromes, Blood dyscrasias",
+                "drugInteractions": "NSAIDs (↑ methotrexate toxicity), Penicillins/cephalosporins (↑ methotrexate levels), Probenecid (↑ methotrexate levels), Folic acid (↓ efficacy for cancer, but given to reduce side effects for RA/psoriasis)",
+                "dosage": "Rheumatoid Arthritis: 7.5-25 mg once weekly; Psoriasis: 10-25 mg once weekly; Cancer: varies by protocol (e.g., 30-40 mg/m² weekly for ALL)",
+                "brandNames": "Trexall, Rheumatrex, Otrexup (auto-injector), Rasuvo (auto-injector)"
+            },
+            {
+                "id": 59,
+                "name": "Gabapentin",
+                "class": "Antiepileptic (GABA Analog)",
+                "mechanism": "Binds to the alpha-2-delta subunit of voltage-sensitive calcium channels, modulating calcium influx and reducing excitatory neurotransmitter release (exact mechanism unclear)",
+                "indications": "Postherpetic Neuralgia, Partial-onset seizures (adjunctive therapy), Neuropathic pain (off-label), Restless Legs Syndrome (off-label), Fibromyalgia (off-label), Anxiety (off-label)",
+                "pharmacokinetics": "Oral bioavailability: 30-60% (dose-dependent), Half-life: 5-7 hours, Not metabolized, Renal excretion",
+                "sideEffects": "Somnolence, dizziness, peripheral edema, weight gain, ataxia, fatigue, blurred vision, suicidal ideation (rare)",
+                "contraindications": "Hypersensitivity to gabapentin",
+                "drugInteractions": "Antacids (↓ gabapentin absorption), CNS depressants (↑ sedation), Morphine (↑ gabapentin levels)",
+                "dosage": "Postherpetic Neuralgia: 300-3600 mg/day in divided doses; Seizures: 900-3600 mg/day in divided doses; Neuropathic pain: 900-3600 mg/day in divided doses",
+                "brandNames": "Neurontin, Gralise (extended-release), Horizant (gabapentin enacarbil - prodrug)"
+            },
+            {
+                "id": 60,
+                "name": "Duloxetine",
+                "class": "Antidepressant (SNRI - Serotonin-Norepinephrine Reuptake Inhibitor)",
+                "mechanism": "Inhibits serotonin and norepinephrine reuptake in the CNS, increasing synaptic levels of both neurotransmitters; also weakly inhibits dopamine reuptake",
+                "indications": "Major Depressive Disorder (MDD), Generalized Anxiety Disorder (GAD), Diabetic Peripheral Neuropathic Pain, Fibromyalgia, Chronic Musculoskeletal Pain, Stress Urinary Incontinence (off-label)",
+                "pharmacokinetics": "Oral bioavailability: 50%, Half-life: 12 hours, Hepatic metabolism (CYP1A2, CYP2D6), Renal excretion",
+                "sideEffects": "Nausea, dry mouth, constipation, fatigue, somnolence, insomnia, dizziness, sexual dysfunction, increased suicidal ideation (in children/young adults), serotonin syndrome (rare), hepatotoxicity (rare)",
+                "contraindications": "MAO inhibitor use within 14 days, Uncontrolled narrow-angle glaucoma, Severe renal impairment (CrCl <30 mL/min), Severe hepatic impairment",
+                "drugInteractions": "MAOIs (↑ serotonin syndrome risk), CYP1A2 inhibitors (e.g., fluvoxamine, ciprofloxacin), CYP2D6 substrates (e.g., tramadol, codeine), Warfarin (↑ bleeding risk), Alcohol (↑ hepatotoxicity risk)",
+                "dosage": "MDD/GAD: 30-120 mg/day; Diabetic Neuropathic Pain/Fibromyalgia: 60-120 mg/day; Chronic Musculoskeletal Pain: 30-60 mg/day",
+                "brandNames": "Cymbalta"
+            }
+        ];
+
+        // ---------- INITIALIZE DATATABLE ----------
+        $(document).ready(function() {
+            const table = $('#drugTable').DataTable({
+                data: drugData,
+                columns: [
+                    { data: 'id' },
+                    { data: 'name' },
+                    { data: 'class' },
+                    {
+                        data: 'mechanism',
+                        render: function(data) {
+                            return data.length > 100 ? data.substr(0, 100) + '...' : data;
+                        }
+                    },
+                    {
+                        data: 'indications',
+                        render: function(data) {
+                            return data.length > 100 ? data.substr(0, 100) + '...' : data;
+                        }
+                    },
+                    {
+                        data: 'pharmacokinetics',
+                        render: function(data) {
+                            return data.length > 100 ? data.substr(0, 100) + '...' : data;
+                        }
+                    },
+                    {
+                        data: 'sideEffects',
+                        render: function(data) {
+                            return data.length > 100 ? data.substr(0, 100) + '...' : data;
+                        }
+                    },
+                    {
+                        data: null,
+                        render: function(data) {
+                            return `<button class="btn btn-sm btn-primary view-details" data-id="${data.id}">View Details</button>`;
+                        }
+                    }
+                ],
+                pageLength: 25,
+                responsive: true,
+                order: [[0, 'asc']]
+            });
+
+            // Custom search input
+            $('#searchInput').on('keyup', function() {
+                table.search(this.value).draw();
+            });
+
+            // Filter by class (column 2)
+            $('#classFilter').on('change', function() {
+                table.column(2).search(this.value).draw();
+            });
+
+            // Filter by indication (column 4)
+            $('#indicationFilter').on('change', function() {
+                table.column(4).search(this.value).draw();
+            });
+
+            // View details modal
+            $(document).on('click', '.view-details', function() {
+                const drugId = $(this).data('id');
+                const drug = drugData.find(d => d.id == drugId);
+
+                if (!drug) return;
+
+                const detailContent = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>${drug.name}</h4>
+                            <p><strong>Brand Names:</strong> ${drug.brandNames || 'N/A'}</p>
+                            <p><strong>Drug Class:</strong> ${drug.class}</p>
+                            <p><strong>Mechanism of Action:</strong> ${drug.mechanism}</p>
+                            <p><strong>Indications:</strong> ${drug.indications}</p>
+                            <p><strong>Dosage:</strong> ${drug.dosage || 'N/A'}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Pharmacokinetics</h5>
+                            <p>${drug.pharmacokinetics}</p>
+                            <h5>Side Effects</h5>
+                            <p>${drug.sideEffects}</p>
+                            <h5>Contraindications</h5>
+                            <p>${drug.contraindications || 'N/A'}</p>
+                            <h5>Drug Interactions</h5>
+                            <p>${drug.drugInteractions || 'N/A'}</p>
+                        </div>
+                    </div>
+                `;
+
+                $('#drugDetailTitle').text(drug.name);
+                $('#drugDetailContent').html(detailContent);
+                const modal = new bootstrap.Modal(document.getElementById('drugDetailModal'));
+                modal.show();
+            });
+
+            // Export to CSV using PapaParse (exports currently filtered/sorted data)
+            $('#exportBtn').on('click', function() {
+                const filteredData = table.rows({ search: 'applied' }).data().toArray();
+
+                const exportData = filteredData.map(row => ({
+                    ID: row.id,
+                    Name: row.name,
+                    Class: row.class,
+                    Mechanism: row.mechanism,
+                    Indications: row.indications,
+                    Pharmacokinetics: row.pharmacokinetics,
+                    SideEffects: row.sideEffects,
+                    BrandNames: row.brandNames,
+                    Dosage: row.dosage,
+                    Contraindications: row.contraindications,
+                    DrugInteractions: row.drugInteractions
+                }));
+
+                const csv = PapaParse.unparse(exportData);
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'drug_data.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+
+            // Simulate loading more drugs
+            $('#loadMoreBtn').on('click', function() {
+                $('#loadingSpinner').show();
+                setTimeout(function() {
+                    alert("In a real application, this would load more drugs from a database or API.");
+                    $('#loadingSpinner').hide();
+                }, 1500);
+            });
+        });
+    </script>
+</body>
+</html>
